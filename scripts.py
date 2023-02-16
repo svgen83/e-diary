@@ -1,7 +1,7 @@
 import random
 from datacenter.models import Schoolkid, Mark, Lesson
 from datacenter.models import Chastisement, Commendation
-from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
+
 
 PRAISES = ['Молодец!', 'Хвалю!',
            'Ты меня приятно удивил!',
@@ -11,10 +11,12 @@ PRAISES = ['Молодец!', 'Хвалю!',
 def get_pupil(pupil_name):
     try:
         return Schoolkid.objects.get(full_name__contains=pupil_name)
-    except MultipleObjectsReturned:
-        print ('Найдено несколько учеников с таким именем. Уточните запрос')
-    except ObjectDoesNotExist:
-        print ('Ученик не найден. Уточните запрос')
+    except Schoolkid.MultipleObjectsReturned:
+        raise Schoolkid.MultipleObjectsReturned(
+            'Найдено несколько учеников с таким именем. Уточните запрос')
+    except Schoolkid.DoesNotExist:
+        raise Schoolkid.DoesNotExist(
+            'Ученик не найден. Уточните запрос')
 
 
 def get_lesson(lesson_subject, pupil):
@@ -25,7 +27,8 @@ def get_lesson(lesson_subject, pupil):
             ).order_by('-date').first()
     if lesson:
         return lesson
-    else: raise ObjectDoesNotExist ('Предмет не найден')
+    else:
+        raise Lesson.DoesNotExist('Предмет не найден')
 
 
 def fix_marks(pupil_name, grade):
@@ -34,7 +37,7 @@ def fix_marks(pupil_name, grade):
                                       points__lte=3)
     pupil_marks.update(points=grade)
     print('Оценки исправлены')
-    
+
 
 def remove_chastisements(pupil_name):
     pupil = get_pupil(pupil_name)
@@ -45,11 +48,10 @@ def remove_chastisements(pupil_name):
 
 def create_commendation(pupil_name, lesson_subject):
     pupil = get_pupil(pupil_name)
-    lesson = get_lesson(lesson_subject, get_pupil(pupil_name))       
+    lesson = get_lesson(lesson_subject, get_pupil(pupil_name))
     Commendation.objects.create(teacher=lesson.teacher,
-                                    created=lesson.date,
-                                    subject=lesson.subject,
-                                    text=random.choice(PRAISES),
-                                    schoolkid=pupil)
+                                created=lesson.date,
+                                subject=lesson.subject,
+                                text=random.choice(PRAISES),
+                                schoolkid=pupil)
     print('Создан положительный отзыв учителя')
-
